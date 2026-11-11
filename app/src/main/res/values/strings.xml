@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Steady</string>
+    <string name="accessibility_service_description">Steady checks which app is on screen during a focus session and returns you to Home if you open an app you chose to block. App names are processed on this device and are not collected.</string>
+</resources>
