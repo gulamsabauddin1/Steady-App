@@ -18,6 +18,7 @@ Steady is an Android-first focus locker for people who want to protect a short w
 ## Permissions and privacy
 
 - **Accessibility Service:** required for app blocking. Android asks the user to enable it from Settings. Steady reads only the package name from window-change events while checking whether a focus session is active. It does not read screen content, upload app usage, or block system apps and the default dialer.
+- **Alarms & reminders access:** on Android 12 and later, allow exact alarm access for routines and session-end alerts to run close to their selected times. If access is off, Steady falls back to inexact alarms, which Android may delay, especially in Doze or battery-saver modes. Use the **Allow exact routine times** button in Steady to open this setting.
 - **Boot receiver:** used to restore enabled routine alarms and an unexpired session after reboot. Routine times follow the phone’s local timezone.
 - **Notifications:** optional. When enabled, a quiet ongoing countdown appears during a session, with an action to end it. A completion note appears when the timer finishes. Focus sessions still work if notification access is denied.
 
@@ -30,7 +31,7 @@ The selected app list and active session are stored locally with Android SharedP
 3. Tap **Add** under **Your routines**. Choose a name, optional intention, local 24-hour start time, repeat days, duration, and apps to pause.
 4. Save the routine. It is scheduled automatically and restored after restart or app update. Keep Steady installed and its Accessibility Service enabled for blocking to continue.
 
-Android may defer alarms briefly during battery-saving or Doze periods. Routine times use the phone's local timezone.
+Exact alarms are used when Android's Alarms & reminders access is granted. Without it, routine and session-end alarms fall back to inexact alarms and may be delayed, especially during battery-saving or Doze periods. Routine times use the phone's local timezone. Routines also require the Accessibility service; if it is disabled, the alarm cannot begin app blocking.
 
 ## Build and test
 
@@ -44,7 +45,7 @@ Open this directory in Android Studio with JDK 17 or newer and Android SDK 35 in
 
 The unit tests cover focus-session duration and input rules plus routine next-occurrence calculations. A device test is still needed for reboot delivery, the Android Accessibility Service, app switching, notification permission, and behavior across phone manufacturers.
 
-The current debug APK is `Steady-0.4.0-debug.apk` in the project root. The app ID remains `com.steady.app`; this build is version `0.4.0` (version code 4). Install it over the previous APK to update in place and keep local data, provided both APKs were signed with the same debug key. Do not uninstall first unless Android reports a signature mismatch, since uninstalling removes local session history, routines, and app selections.
+The current debug APK is `Steady-0.4.1-debug.apk` in the project root. The app ID remains `com.steady.app`; this build is version `0.4.1` (version code 5). Install it over the previous APK to update in place and keep local data, provided both APKs were signed with the same debug key. Do not uninstall first unless Android reports a signature mismatch, since uninstalling removes local session history, routines, and app selections.
 
 ## Current scope
 

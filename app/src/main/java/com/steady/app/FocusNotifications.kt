@@ -99,8 +99,7 @@ object FocusNotifications {
             Intent(context, FocusEndReceiver::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        context.getSystemService(AlarmManager::class.java)
-            .setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, session.endsAtMillis, pendingIntent)
+        RoutineScheduler.scheduleAlarm(context, session.endsAtMillis, pendingIntent)
     }
 
     fun showComplete(context: Context) {

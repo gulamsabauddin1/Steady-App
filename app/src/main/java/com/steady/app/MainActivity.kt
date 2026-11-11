@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ApplicationInfo
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -113,6 +114,8 @@ class MainActivity : ComponentActivity() {
                         store = store,
                         isAccessibilityEnabled = ::isAccessibilityEnabled,
                         openAccessibilitySettings = ::openAccessibilitySettings,
+                        isExactAlarmAccessEnabled = ::isExactAlarmAccessEnabled,
+                        openExactAlarmSettings = ::openExactAlarmSettings,
                         startSession = ::startSession,
                         endSession = ::endSession,
                         setNotificationsEnabled = ::setNotificationsEnabled,
@@ -128,6 +131,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        RoutineScheduler.rescheduleAll(this)
         refreshStatus?.invoke()
     }
 
@@ -137,6 +141,19 @@ class MainActivity : ComponentActivity() {
 
     private fun openAccessibilitySettings() {
         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+    }
+
+    private fun isExactAlarmAccessEnabled(): Boolean = RoutineScheduler.canScheduleExactAlarms(this)
+
+    private fun openExactAlarmSettings() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            startActivity(
+                Intent(
+                    Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                    Uri.parse("package:$packageName"),
+                ),
+            )
+        }
     }
 
     private fun requestNotifications() {
@@ -198,6 +215,8 @@ private fun SteadyApp(
     store: FocusStore,
     isAccessibilityEnabled: () -> Boolean,
     openAccessibilitySettings: () -> Unit,
+    isExactAlarmAccessEnabled: () -> Boolean,
+    openExactAlarmSettings: () -> Unit,
     startSession: (Int, Set<String>, String) -> Unit,
     endSession: () -> Unit,
     setNotificationsEnabled: (Boolean) -> Unit,
@@ -216,6 +235,7 @@ private fun SteadyApp(
     val savedSession = remember(refresh) { store.loadSession() }
     val session = savedSession?.takeIf { it.isActive(nowMillis) }
     val accessibilityEnabled = remember(refresh) { isAccessibilityEnabled() }
+    val exactAlarmAccessEnabled = remember(refresh) { isExactAlarmAccessEnabled() }
     val apps = remember { loadLaunchableApps(context) }
     val visibleApps = remember(apps, search) {
         apps.filter { it.label.contains(search, ignoreCase = true) }
@@ -267,11 +287,19 @@ private fun SteadyApp(
                 }
                 if (!accessibilityEnabled) {
                     Text(
-                        "Enable app blocking in Android Settings so scheduled routines can pause apps.",
+                        "Scheduled routines cannot block apps until Steady's Accessibility service is enabled.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     OutlinedButton(onClick = openAccessibilitySettings) { Text("Enable app blocking") }
+                }
+                if ((routines.any { it.enabled } || session != null) && !exactAlarmAccessEnabled) {
+                    Text(
+                        "Exact alarm access is off. Android may delay routine starts or session-end alerts, especially in battery-saving modes.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedButton(onClick = openExactAlarmSettings) { Text("Allow exact routine times") }
                 }
                 if (routines.isEmpty()) {
                     Text("Create a routine for study, reading, or any time you want to protect.", style = MaterialTheme.typography.bodyMedium)

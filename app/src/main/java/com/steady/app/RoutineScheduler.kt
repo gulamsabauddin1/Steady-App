@@ -6,6 +6,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDateTime
@@ -14,12 +16,33 @@ import java.time.ZoneId
 
 object FocusPermissions {
     fun isAccessibilityEnabled(context: Context): Boolean {
-        val manager = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as android.view.accessibility.AccessibilityManager
-        return manager.getEnabledAccessibilityServiceList(android.accessibilityservice.AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
-            .any {
-                it.resolveInfo.serviceInfo.packageName == context.packageName &&
-                    it.resolveInfo.serviceInfo.name == FocusAccessibilityService::class.java.name
-            }
+        val enabledServices = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+        )
+        return isAccessibilityServiceEnabled(
+            enabledServices,
+            packageName = context.packageName,
+            serviceClassName = FocusAccessibilityService::class.java.name,
+        )
+    }
+
+    internal fun isAccessibilityServiceEnabled(
+        enabledServicesSetting: String?,
+        packageName: String,
+        serviceClassName: String,
+    ): Boolean = enabledServicesSetting.orEmpty().split(':').any { component ->
+        val separator = component.indexOf('/')
+        if (separator <= 0 || separator == component.lastIndex) return@any false
+
+        val componentPackage = component.substring(0, separator)
+        val rawClassName = component.substring(separator + 1)
+        val componentClass = if (rawClassName.startsWith('.')) {
+            componentPackage + rawClassName
+        } else {
+            rawClassName
+        }
+        componentPackage == packageName && componentClass == serviceClassName
     }
 }
 
@@ -48,9 +71,30 @@ object RoutineScheduler {
             cancel(context, routine.id)
             return
         }
-        val alarm = context.getSystemService(AlarmManager::class.java)
-        alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent(context, routine.id))
+        scheduleAlarm(context, triggerAt, pendingIntent(context, routine.id))
     }
+
+    fun scheduleAlarm(context: Context, triggerAtMillis: Long, operation: PendingIntent) {
+        val alarm = context.getSystemService(AlarmManager::class.java)
+        if (shouldUseExactAlarm(Build.VERSION.SDK_INT, canScheduleExactAlarms(context))) {
+            try {
+                alarm.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, operation)
+            } catch (_: SecurityException) {
+                // Access can be revoked between the permission check and scheduling.
+                alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, operation)
+            }
+        } else {
+            alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, operation)
+        }
+    }
+
+    fun canScheduleExactAlarms(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
+        return context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
+    }
+
+    internal fun shouldUseExactAlarm(sdkInt: Int, canScheduleExactAlarms: Boolean): Boolean =
+        sdkInt < Build.VERSION_CODES.S || canScheduleExactAlarms
 
     fun cancel(context: Context, routineId: String) {
         val alarm = context.getSystemService(AlarmManager::class.java)
