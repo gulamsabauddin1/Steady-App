@@ -5,6 +5,12 @@ data class FocusSession(
     val endsAtMillis: Long,
     val blockedPackages: Set<String>,
     val intention: String = "",
+    val routineId: String? = null,
+    val routineName: String = "",
+    val minimumAction: String = "",
+    val normalAction: String = "",
+    val extraAction: String = "",
+    val fallbackPlan: String = "",
 ) {
     fun isActive(nowMillis: Long): Boolean = endsAtMillis > nowMillis
 
@@ -14,6 +20,7 @@ data class FocusSession(
             durationMinutes: Int,
             blockedPackages: Set<String>,
             intention: String = "",
+            routine: FocusRoutine? = null,
         ): FocusSession {
             require(durationMinutes in MIN_DURATION_MINUTES..MAX_DURATION_MINUTES)
             require(blockedPackages.isNotEmpty())
@@ -22,6 +29,12 @@ data class FocusSession(
                 endsAtMillis = nowMillis + durationMinutes * MILLIS_PER_MINUTE,
                 blockedPackages = blockedPackages.toSet(),
                 intention = intention.trim().take(MAX_INTENTION_LENGTH),
+                routineId = routine?.id,
+                routineName = routine?.name.orEmpty(),
+                minimumAction = routine?.minimumAction.orEmpty(),
+                normalAction = routine?.normalAction.orEmpty(),
+                extraAction = routine?.extraAction.orEmpty(),
+                fallbackPlan = routine?.fallbackPlan.orEmpty(),
             )
         }
 

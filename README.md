@@ -4,8 +4,11 @@ Steady is an Android-first focus locker for people who want to protect a short w
 
 ## Prototype features
 
-- User-created routines with a title, optional intention, selected days, local start time, session length, and per-routine app block list.
+- User-created routines with a title, optional intention, minimum and usual actions, optional extra action and fallback plan, selected days, local start time, session length, and per-routine app block list.
 - Routine schedules and focus history saved on-device; alarms are restored after device restart, app update, and local time or timezone changes.
+- A five-section bottom menu for Today, Routines, Focus, Progress, and Settings.
+- Routine completion check-ins for the small, usual, or extra action; skipped runs include a reason in Progress.
+- A weekly summary and a gentle recovery prompt after a missed routine, with options to edit or pause it.
 - Custom focus sessions from 5 to 180 minutes, with 15-, 25-, and 45-minute shortcuts.
 - An optional intention shown during the session.
 - Searchable list of installed user apps to pause.
@@ -43,9 +46,9 @@ Open this directory in Android Studio with JDK 17 or newer and Android SDK 35 in
 .\gradlew.bat installDebug
 ```
 
-The unit tests cover focus-session duration and input rules plus routine next-occurrence calculations. A device test is still needed for reboot delivery, the Android Accessibility Service, app switching, notification permission, and behavior across phone manufacturers.
+The unit tests cover focus-session duration and input rules, routine scheduling, and weekly progress summaries. A device test is still needed for reboot delivery, the Android Accessibility Service, app switching, notification permission, and behavior across phone manufacturers.
 
-The current debug APK is `Steady-0.4.1-debug.apk` in the project root. The app ID remains `com.steady.app`; this build is version `0.4.1` (version code 5). Install it over the previous APK to update in place and keep local data, provided both APKs were signed with the same debug key. Do not uninstall first unless Android reports a signature mismatch, since uninstalling removes local session history, routines, and app selections.
+The app ID remains `com.steady.app`; the current source version is `0.5.0` (version code 6). Android Studio writes a debug APK to `app/build/outputs/apk/debug/app-debug.apk`. Install over the previous APK to update in place and keep local data, provided both APKs use the same signing key. Do not uninstall first unless Android reports a signature mismatch, since uninstalling removes local session history, routines, and app selections.
 
 ## Current scope
 

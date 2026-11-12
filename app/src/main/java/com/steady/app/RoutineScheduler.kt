@@ -132,13 +132,33 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
         val now = System.currentTimeMillis()
         val previousSession = store.loadStoredSession()
         if (previousSession != null) {
-            if (previousSession.isActive(now)) return
+            if (previousSession.isActive(now)) {
+                store.recordRoutineOutcome(
+                    RoutineRunRecord(routine.id, routine.name, now, RoutineOutcome.SKIPPED, "Another focus session is active."),
+                )
+                return
+            }
+            store.createPendingCheckIn(previousSession)
             store.finishSession(completed = true, nowMillis = now)
         }
-        if (!FocusPermissions.isAccessibilityEnabled(context)) return
+        if (!FocusPermissions.isAccessibilityEnabled(context)) {
+            store.recordRoutineOutcome(
+                RoutineRunRecord(routine.id, routine.name, now, RoutineOutcome.SKIPPED, "Accessibility service is disabled."),
+            )
+            return
+        }
 
-        val session = FocusSession.create(now, routine.durationMinutes, routine.blockedPackages, routine.intention.ifBlank { routine.name })
+        val session = FocusSession.create(
+            now,
+            routine.durationMinutes,
+            routine.blockedPackages,
+            routine.intention.ifBlank { routine.name },
+            routine = routine,
+        )
         store.saveSession(session)
+        store.recordRoutineOutcome(
+            RoutineRunRecord(routine.id, routine.name, now, RoutineOutcome.PENDING),
+        )
         FocusNotifications.scheduleSessionEnd(context, session)
         if (store.areFocusNotificationsEnabled()) FocusNotifications.showActive(context, session)
     }
@@ -160,6 +180,7 @@ class FocusBootReceiver : BroadcastReceiver() {
                     FocusNotifications.scheduleSessionEnd(context, storedSession)
                     if (store.areFocusNotificationsEnabled()) FocusNotifications.showActive(context, storedSession)
                 } else {
+                    if (!storedSession.isActive(now)) store.createPendingCheckIn(storedSession)
                     store.finishSession(completed = !storedSession.isActive(now), nowMillis = now)
                     FocusNotifications.cancelActive(context)
                 }

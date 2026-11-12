@@ -12,6 +12,10 @@ data class FocusRoutine(
     val durationMinutes: Int,
     val blockedPackages: Set<String>,
     val enabled: Boolean = true,
+    val minimumAction: String = "",
+    val normalAction: String = "",
+    val extraAction: String = "",
+    val fallbackPlan: String = "",
 ) {
     init {
         require(name.isNotBlank())

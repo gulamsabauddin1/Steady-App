@@ -115,18 +115,44 @@ object FocusNotifications {
             .build()
         runCatching { NotificationManagerCompat.from(context).notify(COMPLETE_NOTIFICATION_ID, notification) }
     }
+
+    fun showRoutineCheckIn(context: Context, checkIn: PendingRoutineCheckIn) {
+        if (!canNotify(context)) return
+        ensureChannels(context)
+        val openApp = PendingIntent.getActivity(
+            context,
+            COMPLETE_NOTIFICATION_ID + 1,
+            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val notification = NotificationCompat.Builder(context, COMPLETE_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_steady)
+            .setContentTitle("How did ${checkIn.routineName} go?")
+            .setContentText("Record the version you completed. Small steps count.")
+            .setContentIntent(openApp)
+            .setAutoCancel(true)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        runCatching { NotificationManagerCompat.from(context).notify(COMPLETE_NOTIFICATION_ID, notification) }
+    }
 }
 
 class FocusEndReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val isUserEnding = intent?.action == FocusNotifications.ACTION_END_SESSION
         val store = FocusStore(context)
+        val session = store.loadStoredSession()
+        val checkIn = session?.let(store::createPendingCheckIn)
         store.finishSession(completed = !isUserEnding)
         FocusNotifications.cancelActive(context)
 
         if (isUserEnding) {
             FocusNotifications.cancelSessionAlarm(context)
-        } else if (store.areFocusNotificationsEnabled()) {
+        }
+        if (store.areFocusNotificationsEnabled() && checkIn != null) {
+            FocusNotifications.showRoutineCheckIn(context, checkIn)
+        } else if (store.areFocusNotificationsEnabled() && !isUserEnding) {
             FocusNotifications.showComplete(context)
         }
     }
